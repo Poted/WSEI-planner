@@ -188,20 +188,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
   }
 
-
   Future<void> _pickAndSaveIcsFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['ics'],
-      withData: kIsWeb,
-    );
+    FilePickerResult? result;
+
+    if (kIsWeb) {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['ics'],
+        withData: true,
+      );
+    } else {
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+    }
 
     if (result != null) {
       final prefs = await SharedPreferences.getInstance();
 
       if (kIsWeb) {
         final fileBytes = result.files.single.bytes!;
-        final icsContent = utf8.decode(fileBytes); 
+        final icsContent = utf8.decode(fileBytes);
         await prefs.setString('custom_ics_content', icsContent);
       } else {
         final path = result.files.single.path!;
