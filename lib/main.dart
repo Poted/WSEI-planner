@@ -191,7 +191,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _pickAndSaveIcsFile() async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
+      type: FileType.custom,
+      allowedExtensions: ['ics'],
       withData: kIsWeb,
     );
 
