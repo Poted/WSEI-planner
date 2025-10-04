@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:wseiflow/main.dart';
 import 'credit.dart';
 
 class CreditsScreen extends StatefulWidget {
@@ -127,13 +128,15 @@ class _CreditsScreenState extends State<CreditsScreen> {
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                color: isSubjectPassed ? Colors.green.withAlpha(38) : null,
+                color: isSubjectPassed ? wseiGreen.shade500 : null,
                 child: ExpansionTile(
                   title: Text(subject.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      )),
                   children: relevantParts.map((part) {
                     final isPassed = part.isPassed;
-                    final color = isPassed ? Colors.green.withAlpha(26) : null;
+                    final color = isSubjectPassed ? wseiGreen.shade100 : null;
                     String deadlinesText = 'Brak terminów';
                     if (part.deadlines.isNotEmpty) {
                       part.deadlines.sort();
