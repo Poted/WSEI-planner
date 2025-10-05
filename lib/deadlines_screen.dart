@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:wseiflow/main.dart';
 import 'credit.dart';
 
 class AggregatedDeadline {
