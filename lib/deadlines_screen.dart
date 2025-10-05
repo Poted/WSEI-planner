@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:wseiflow/main.dart';
 import 'credit.dart';
 
 class AggregatedDeadline {
@@ -61,11 +62,15 @@ class DeadlinesScreen extends StatelessWidget {
                 ? const Icon(Icons.check_circle, color: Colors.green)
                 : const Icon(Icons.radio_button_unchecked);
 
-            return ListTile(
-              leading: icon,
-              title: Text(deadline.subjectName),
-              subtitle: Text(deadline.partType),
-              trailing: Text(DateFormat('dd.MM.yyyy').format(deadline.date)),
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              // color: Theme.of(context).canvasColor,
+              child: ListTile(
+                leading: icon,
+                title: Text(deadline.subjectName),
+                subtitle: Text(deadline.partType),
+                trailing: Text(DateFormat('dd.MM.yyyy').format(deadline.date)),
+              ),
             );
           },
         );

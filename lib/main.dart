@@ -15,7 +15,10 @@ import 'credit.dart';
 import 'credits_screen.dart';
 import 'deadline.dart';
 import 'deadlines_screen.dart';
+import 'package:provider/provider.dart';
+import 'theme_provider.dart';
 import 'settings_screen.dart';
+
 
 const MaterialColor wseiGreen = MaterialColor(
   _wseiGreenPrimaryValue,
@@ -33,6 +36,64 @@ const MaterialColor wseiGreen = MaterialColor(
   },
 );
 const int _wseiGreenPrimaryValue = 0xFF8DC63F;
+
+const MaterialColor pusheenPink = MaterialColor(
+  _pusheenPinkPrimaryValue,
+  <int, Color>{
+    50: Color(0xFFFEEFF2),
+    100: Color(0xFFFBD7E0),
+    200: Color(0xFFF8BDCC),
+    300: Color(0xFFF5A3B8),
+    400: Color(0xFFF28FAA),
+    500: Color(_pusheenPinkPrimaryValue),
+    600: Color(0xFFEE7394),
+    700: Color(0xFFEA688A),
+    800: Color(0xFFE75E81),
+    900: Color(0xFFE14B6F),
+  },
+);
+const int _pusheenPinkPrimaryValue = 0xFFF07B9C;
+
+
+final ThemeData lightTheme = ThemeData(
+  brightness: Brightness.light,
+  primarySwatch: wseiGreen,
+  scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+  cardColor: Colors.white,
+  useMaterial3: true,
+  cardTheme: CardThemeData(
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+);
+
+final ThemeData darkTheme = ThemeData(
+  brightness: Brightness.dark,
+  primarySwatch: wseiGreen,
+  scaffoldBackgroundColor: const Color(0xFF303030),
+  cardColor: wseiGreen.shade800.withAlpha(100),
+  useMaterial3: true,
+  cardTheme: CardThemeData(
+    color: const Color(0xFF424242),
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+);
+
+final ThemeData pusheenTheme = ThemeData(
+  brightness: Brightness.light,
+  primarySwatch: pusheenPink,
+  scaffoldBackgroundColor: const Color(0xFFFFF9F5),
+  cardColor: Colors.white.withAlpha(220),
+  useMaterial3: true,
+  cardTheme: CardThemeData(
+    color: Colors.white.withAlpha(220),
+    elevation: 1,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  ),
+);
+
+
 
 class ScheduleEntry {
   final String subjectName;
@@ -128,6 +189,7 @@ Map<DateTime, List<ScheduleEntry>> groupScheduleByDate(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final themeProvider = await ThemeProvider.create();
   
   await initializeDateFormatting('pl_PL', null);
 
@@ -141,26 +203,36 @@ Future<void> main() async {
   await Hive.openBox<Subject>('subjects');
   await Hive.openBox<CreditPart>('credit_parts');
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => themeProvider,
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    // Logika wybierająca odpowiedni motyw
+    ThemeData currentThemeData;
+    if (themeProvider.isPusheenMode) {
+      currentThemeData = pusheenTheme;
+    } else if (themeProvider.isDarkMode) {
+      currentThemeData = darkTheme;
+    } else {
+      currentThemeData = lightTheme;
+    }
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'WSEI Planner',
-      theme: ThemeData(
-        primarySwatch: wseiGreen,
-        useMaterial3: true,
-        cardTheme: CardThemeData(
-          elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
-
+      theme: currentThemeData,
+      darkTheme: darkTheme,
+      themeMode: themeProvider.themeMode,
       locale: const Locale('pl', 'PL'),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -170,7 +242,6 @@ class MyApp extends StatelessWidget {
       supportedLocales: const [
         Locale('pl', 'PL'),
       ],
-
       home: const ScheduleScreen(),
     );
   }
@@ -288,6 +359,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
       itemCount: sortedKeys.length,
       itemBuilder: (context, index) {
+        final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
         final dateKey = sortedKeys[index];
         final entriesForDay = grouped[dateKey]!;
 
@@ -300,83 +372,117 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             children: [
               Container(
                 width: double.infinity,
-                color: wseiGreen.shade600,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                child: Text(
-                  DateFormat('EEEE, dd MMMM yyyy', 'pl_PL').format(dateKey),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                    color: Color.fromARGB(255, 255, 255, 255),
-                  ),
+                padding: const EdgeInsets.all(12.0),
+                decoration: themeProvider.isPusheenMode
+                    ? BoxDecoration(
+
+                        image: DecorationImage(
+                          image: const AssetImage('assets/cats.jpg'),
+                          fit: BoxFit.cover,
+                          opacity: 0.15,
+                        ),
+
+                        gradient: LinearGradient(
+                          colors: [
+                            pusheenPink.shade900.withAlpha(255),
+                            pusheenPink.shade900.withAlpha(125),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      )
+                    : BoxDecoration(
+                        color: wseiGreen.shade600,
+                      ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined,
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        size: 22),
+                    const SizedBox(width: 12),
+                    Text(
+                      DateFormat('EEEE, dd MMMM yyyy', 'pl_PL').format(dateKey),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 17,
+                        color: Color.fromARGB(255, 255, 255, 255),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              // Reszta kodu bez zmian...
               Column(
                 children: List.generate(entriesForDay.length, (entryIndex) {
                   final item = entriesForDay[entryIndex];
-
-                  final bool isCurrent = now.isAfter(item.startTime) && now.isBefore(item.endTime);
+                  final bool isCurrent =
+                      now.isAfter(item.startTime) && now.isBefore(item.endTime);
                   bool isBreak = false;
 
                   if (entryIndex > 0) {
                     final previousItem = entriesForDay[entryIndex - 1];
-                    if (now.isAfter(previousItem.endTime) && now.isBefore(item.startTime)) {
-                      if (item.startTime.difference(previousItem.endTime).inMinutes <= 20) {
+                    if (now.isAfter(previousItem.endTime) &&
+                        now.isBefore(item.startTime)) {
+                      if (item.startTime
+                              .difference(previousItem.endTime)
+                              .inMinutes <=
+                          20) {
                         isBreak = true;
                       }
                     }
                   }
 
                   final Color borderColor = isCurrent
-                      ? wseiGreen.shade700
+                      ? Colors.greenAccent.shade700
                       : isBreak
                           ? Colors.amber.shade700
                           : Colors.transparent;
 
-                return Container(
-                  decoration: BoxDecoration(
-                       border: Border(left: BorderSide(color: borderColor, width: 5.0)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(11, 12, 16, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.subjectName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 8),
-                        Row(children: [
-                          const Icon(Icons.schedule_outlined,
-                              size: 16, color: Colors.black54),
-                          const SizedBox(width: 8),
-                          Text(
-                              '${DateFormat.Hm().format(item.startTime)} - ${DateFormat.Hm().format(item.endTime)}'),
-                        ]),
-                        const SizedBox(height: 4),
-                        Row(children: [
-                          const Icon(Icons.person_outline,
-                              size: 16, color: Colors.black54),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(item.lecturer)),
-                        ]),
-                        const SizedBox(height: 4),
-                        Row(children: [
-                          const Icon(Icons.location_on_outlined,
-                              size: 16, color: Colors.black54),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(item.room)),
-                          Text(item.classType,
-                              style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontStyle: FontStyle.italic)),
-                        ]),
-                      ],
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: themeProvider.isPusheenMode ? pusheenPink.shade400.withAlpha(35) : null,
+                      border: Border(
+                          left: BorderSide(color: borderColor, width: 5.0)),
                     ),
-                  ),
-                );
-              }),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(11, 12, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.subjectName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Icon(Icons.schedule_outlined,
+                                size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
+                            const SizedBox(width: 8),
+                            Text(
+                                '${DateFormat.Hm().format(item.startTime)} - ${DateFormat.Hm().format(item.endTime)}'),
+                          ]),
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            Icon(Icons.person_outline,
+                                size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item.lecturer)),
+                          ]),
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 16, color: Theme.of(context).textTheme.bodySmall?.color),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item.room)),
+                            Text(item.classType,
+                                style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
+                                    fontStyle: FontStyle.italic)),
+                          ]),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -435,9 +541,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return _buildGroupedScheduleList(upcomingEntries);
   }
 
-  @override
+
+    @override
   Widget build(BuildContext context) {
     final titles = ['Najbliższe', 'Plan zajęć', 'Zaliczenia', 'Terminy', 'Ustawienia'];
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -460,10 +568,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        flexibleSpace: Container(
+
+          flexibleSpace: Container(
           decoration: BoxDecoration(
+            image: themeProvider.isPusheenMode ?
+             DecorationImage(
+              image: const AssetImage('assets/cats.jpg'),
+              fit: BoxFit.cover,
+              opacity: 0.3,
+            ) : null,
             gradient: LinearGradient(
-              colors: [wseiGreen.shade500, wseiGreen.shade700],
+              colors: themeProvider.isPusheenMode
+                  ? [pusheenPink.shade500, pusheenPink.shade700] // Kolory dla Pusheena
+                  : [wseiGreen.shade500, wseiGreen.shade700],    // Kolory dla reszty
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -475,6 +592,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
         ),
+
         actions: [
           IconButton(
             icon: const Icon(Icons.file_upload_outlined, color: Colors.white),
@@ -483,45 +601,58 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<ScheduleEntry>>(
-        future: _scheduleFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-                child: Text('Błąd wczytywania danych: ${snapshot.error}'));
-          }
-          if (snapshot.hasData) {
-            final allEntries = snapshot.data!;
+      body: Stack(
+        children: [
+          if (themeProvider.isPusheenMode)
+            Positioned.fill(
+              child: Image.asset(
+                'assets/cats.jpg',
+                repeat: ImageRepeat.repeat,
+                opacity: const AlwaysStoppedAnimation(0.2),
+              ),
+            ),
 
-            if (allEntries.isEmpty) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: Text(
-                    'Zaimportuj swój plan zajęć w formacie .ics, używając ikony w prawym górnym rogu.\n Pobierzesz go z Wirtualnego Dziekanatu używając przycisku "Pobierz jako ical" w zakładce "Plany zajęć".\n\n!NOTE:\nPamiętaj, aby daty od-do były w zakresie obejmującym cały semestr. W przeciwnym wypadku Dziekanat wygeneruje niepełny plik.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 18, color: Colors.black54),
-                  ),
-                ),
-              );
-            }
+          FutureBuilder<List<ScheduleEntry>>(
+            future: _scheduleFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('Błąd wczytywania danych: ${snapshot.error}'));
+              }
+              if (snapshot.hasData) {
+                final allEntries = snapshot.data!;
 
-            return IndexedStack(
-              index: _selectedIndex,
-              children: [
-                _buildUpcomingList(allEntries),
-                _buildGroupedScheduleList(allEntries),
-                const CreditsScreen(),
-                const DeadlinesScreen(),
-                const SettingsScreen(),
-              ],
-            );
-          }
-          return const Center(child: Text('Brak danych'));
-        },
+                if (allEntries.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text(
+                        'Zaimportuj swój plan zajęć w formacie .ics, używając ikony w prawym górnym rogu.\n Pobierzesz go z Wirtualnego Dziekanatu używając przycisku "Pobierz jako ical" w zakładce "Plany zajęć".\n\n!NOTE:\nPamiętaj, aby daty od-do były w zakresie obejmującym cały semestr. W przeciwnym wypadku Dziekanat wygeneruje niepełny plik.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 18, color: Colors.black54),
+                      ),
+                    ),
+                  );
+                }
+
+                return IndexedStack(
+                  index: _selectedIndex,
+                  children: [
+                    _buildUpcomingList(allEntries),
+                    _buildGroupedScheduleList(allEntries),
+                    const CreditsScreen(),
+                    const DeadlinesScreen(),
+                    const SettingsScreen(),
+                  ],
+                );
+              }
+              return const Center(child: Text('Brak danych'));
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -539,4 +670,5 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
   }
+
 }

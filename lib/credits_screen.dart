@@ -1,8 +1,9 @@
-// lib/credits_screen.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:wseiflow/main.dart';
+import 'theme_provider.dart';
+import 'package:provider/provider.dart';
 import 'credit.dart';
 
 class CreditsScreen extends StatefulWidget {
@@ -104,7 +105,14 @@ class _CreditsScreenState extends State<CreditsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
     return Scaffold(
+      backgroundColor: themeProvider.isPusheenMode
+        ? Colors.transparent
+        : null,
+
       body: ValueListenableBuilder(
         valueListenable: _subjectsBox.listenable(),
         builder: (context, Box<Subject> box, _) {
@@ -136,7 +144,11 @@ class _CreditsScreenState extends State<CreditsScreen> {
                       )),
                   children: relevantParts.map((part) {
                     final isPassed = part.isPassed;
-                    final color = isSubjectPassed ? wseiGreen.shade100 : null;
+                    final color = 
+                      isSubjectPassed ? 
+                        themeProvider.isDarkMode ?
+                        const Color.fromARGB(255, 78, 110, 69) : wseiGreen.shade100 
+                      : null;
                     String deadlinesText = 'Brak terminów';
                     if (part.deadlines.isNotEmpty) {
                       part.deadlines.sort();

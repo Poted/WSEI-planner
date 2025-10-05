@@ -6,11 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:provider/provider.dart'; // Import Provider
+import 'theme_provider.dart'; // Import ThemeProvider
 
 import 'credit.dart';
 import 'deadline.dart';
 
-// Zmieniamy na StatefulWidget
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -23,8 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final subjectsBox = Hive.box<Subject>('subjects');
     final deadlinesBox = Hive.box<Deadline>('deadlines');
 
-    final List<Map<String, dynamic>> subjectsJson =
-        subjectsBox.values.map((subject) {
+    final List<Map<String, dynamic>> subjectsJson = subjectsBox.values.map((subject) {
       return {
         'name': subject.name,
         'parts': subject.parts.map((part) {
@@ -39,8 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       };
     }).toList();
 
-    final List<Map<String, dynamic>> deadlinesJson =
-        deadlinesBox.values.map((deadline) {
+    final List<Map<String, dynamic>> deadlinesJson = deadlinesBox.values.map((deadline) {
       return {
         'name': deadline.name,
         'date': deadline.date.toIso8601String(),
@@ -64,8 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       html.Url.revokeObjectUrl(url);
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Eksport dostępny tylko w wersji webowej.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Eksport dostępny tylko w wersji webowej.')));
     }
   }
 
@@ -106,65 +104,96 @@ class _SettingsScreenState extends State<SettingsScreen> {
               lecturer: partData['lecturer'],
               isPassed: partData['isPassed'],
               notes: partData['notes'],
-              deadlines: (partData['deadlines'] as List)
-                  .map((d) => DateTime.parse(d))
-                  .toList(),
+              deadlines: (partData['deadlines'] as List).map((d) => DateTime.parse(d)).toList(),
             );
           }).toList();
-
+          
           await partsBox.addAll(creditParts);
-          subjectsBox.add(Subject(
-              name: subjectData['name'],
-              parts: HiveList(partsBox, objects: creditParts)));
+          subjectsBox.add(Subject(name: subjectData['name'], parts: HiveList(partsBox, objects: creditParts)));
         }
-
+        
         final List deadlinesJson = backupData['deadlines'] ?? [];
         for (var deadlineData in deadlinesJson) {
-          deadlinesBox.add(Deadline(
-              name: deadlineData['name'],
-              date: DateTime.parse(deadlineData['date'])));
+          deadlinesBox.add(Deadline(name: deadlineData['name'], date: DateTime.parse(deadlineData['date'])));
         }
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Dane zostały pomyślnie przywrócone!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Dane zostały pomyślnie przywrócone!')));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Błąd importu: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Błąd importu: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'Utwórz kopię zapasową swoich terminów i notatek lub przywróć je z pliku.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+      backgroundColor: themeProvider.isPusheenMode
+        ? Colors.transparent
+        : null,
+
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text('Wygląd', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                  const Divider(),
+                  SwitchListTile(
+                    title: const Text('Dark Mode'),
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) {
+                      themeProvider.setAppThemeMode(value ? AppThemeMode.dark : AppThemeMode.light);
+                    },
+                  ),
+                  SwitchListTile(
+                    title: const Text('Cat Mode'),
+                    value: themeProvider.isPusheenMode,
+                    onChanged: (value) {
+                      themeProvider.setAppThemeMode(value ? AppThemeMode.pusheen : AppThemeMode.light);
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.file_download),
-                label: const Text('Eksportuj dane do pliku'),
-                onPressed: _exportData,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.file_upload),
-                label: const Text('Importuj dane z pliku'),
-                onPressed: _importData,
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 24),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text('Kopia zapasowa notatek', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.file_download),
+                    title: const Text('Eksportuj dane do pliku'),
+                    onTap: () => _exportData(), // Usunięto 'context'
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.file_upload),
+                    title: const Text('Importuj dane z pliku'),
+                    onTap: () => _importData(), // Usunięto 'context'
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
