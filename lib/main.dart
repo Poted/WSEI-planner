@@ -15,6 +15,7 @@ import 'credit.dart';
 import 'credits_screen.dart';
 import 'deadline.dart';
 import 'deadlines_screen.dart';
+import 'settings_screen.dart';
 
 const MaterialColor wseiGreen = MaterialColor(
   _wseiGreenPrimaryValue,
@@ -436,7 +437,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = ['Najbliższe', 'Plan zajęć', 'Zaliczenia', 'Terminy'];
+    final titles = ['Najbliższe', 'Plan zajęć', 'Zaliczenia', 'Terminy', 'Ustawienia'];
 
     return Scaffold(
       appBar: AppBar(
@@ -515,6 +516,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 _buildGroupedScheduleList(allEntries),
                 const CreditsScreen(),
                 const DeadlinesScreen(),
+                const SettingsScreen(),
               ],
             );
           }
@@ -530,6 +532,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               icon: Icon(Icons.calendar_month), label: 'Plan'),
           BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Zaliczenia'),
           BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: 'Terminy'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Ustawienia'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
