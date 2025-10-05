@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:icalendar_parser/icalendar_parser.dart';
@@ -158,6 +159,17 @@ class MyApp extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
+
+      locale: const Locale('pl', 'PL'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('pl', 'PL'),
+      ],
+
       home: const ScheduleScreen(),
     );
   }
@@ -375,36 +387,48 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget _buildUpcomingList(List<ScheduleEntry> allEntries) {
     final now = DateTime.now();
 
-    DateTime findFriday(DateTime from) {
-      int daysAgo = (from.weekday - 5 + 7) % 7;
-      return DateTime(from.year, from.month, from.day)
-          .subtract(Duration(days: daysAgo));
+    allEntries.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final nextClassIndex = allEntries.indexWhere((entry) => entry.endTime.isAfter(now));
+
+    if (nextClassIndex == -1) {
+      return const Center(child: Text('Brak nadchodzących zajęć w planie.'));
     }
 
-    DateTime friday = findFriday(now);
-    DateTime sunday = friday.add(const Duration(days: 2));
+    final referenceDate = allEntries[nextClassIndex].startTime;
+    
+    bool isWeekendSchedule = false;
+    for (final entry in allEntries) {
+      if (entry.startTime.weekday == DateTime.saturday || entry.startTime.weekday == DateTime.sunday) {
+        isWeekendSchedule = true;
+        break;
+      }
+    }
 
-    List<ScheduleEntry> upcomingEntries = allEntries.where((entry) {
-      return entry.startTime
-              .isAfter(friday.subtract(const Duration(seconds: 1))) &&
-          entry.startTime.isBefore(sunday.add(const Duration(days: 1)));
-    }).toList();
+    List<ScheduleEntry> upcomingEntries;
 
-    if (upcomingEntries.isEmpty) {
-      friday = friday.add(const Duration(days: 7));
-      sunday = friday.add(const Duration(days: 2));
+    if (isWeekendSchedule) {
+      // Zaoczne
+      int daysAgo = (referenceDate.weekday - DateTime.friday + 7) % 7;
+      DateTime friday = DateTime(referenceDate.year, referenceDate.month, referenceDate.day).subtract(Duration(days: daysAgo));
+      DateTime sunday = friday.add(const Duration(days: 2));
+
       upcomingEntries = allEntries.where((entry) {
-        return entry.startTime
-                .isAfter(friday.subtract(const Duration(seconds: 1))) &&
-            entry.startTime.isBefore(sunday.add(const Duration(days: 1)));
+        return !entry.startTime.isBefore(friday) && entry.startTime.isBefore(sunday.add(const Duration(days: 1)));
+      }).toList();
+    } else {
+      // Dzienne
+      int daysAgo = referenceDate.weekday - DateTime.monday;
+      DateTime monday = DateTime(referenceDate.year, referenceDate.month, referenceDate.day).subtract(Duration(days: daysAgo));
+      DateTime friday = monday.add(const Duration(days: 4));
+
+      upcomingEntries = allEntries.where((entry) {
+        return !entry.startTime.isBefore(monday) && entry.startTime.isBefore(friday.add(const Duration(days: 1)));
       }).toList();
     }
 
-    upcomingEntries.sort((a, b) => a.startTime.compareTo(b.startTime));
-
     if (upcomingEntries.isEmpty) {
-      return const Center(
-          child: Text('Brak zajęć w najbliższych dwóch weekendach.'));
+      return const Center(child: Text('Brak zajęć w najbliższym terminie.'));
     }
 
     return _buildGroupedScheduleList(upcomingEntries);
