@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/date_symbol_data_local.dart';
 import 'dart:convert';
-
+import 'dart:async';
 import 'credit.dart';
 import 'credits_screen.dart';
 import 'deadline.dart';
@@ -173,11 +173,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   int _selectedIndex = 0;
   late Future<List<ScheduleEntry>> _scheduleFuture;
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _loadSchedule();
+
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      setState(() {});
+    });
   }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
 
   void _loadSchedule() {
     setState(() {
@@ -286,17 +299,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   ),
                 ),
               ),
-              ...entriesForDay.map((item) {
-                final bool isCurrent =
-                    now.isAfter(item.startTime) && now.isBefore(item.endTime);
+              Column(
+                children: List.generate(entriesForDay.length, (entryIndex) {
+                  final item = entriesForDay[entryIndex];
+
+                  final bool isCurrent = now.isAfter(item.startTime) && now.isBefore(item.endTime);
+                  bool isBreak = false;
+
+                  if (entryIndex > 0) {
+                    final previousItem = entriesForDay[entryIndex - 1];
+                    if (now.isAfter(previousItem.endTime) && now.isBefore(item.startTime)) {
+                      if (item.startTime.difference(previousItem.endTime).inMinutes <= 20) {
+                        isBreak = true;
+                      }
+                    }
+                  }
+
+                  final Color borderColor = isCurrent
+                      ? wseiGreen.shade700
+                      : isBreak
+                          ? Colors.amber.shade700
+                          : Colors.transparent;
+
                 return Container(
                   decoration: BoxDecoration(
-                    border: Border(
-                        left: BorderSide(
-                            color: isCurrent
-                                ? Colors.greenAccent.shade700
-                                : Colors.transparent,
-                            width: 5.0)),
+                       border: Border(left: BorderSide(color: borderColor, width: 5.0)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(11, 12, 16, 12),
@@ -336,7 +363,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
+              ),
             ],
           ),
         );
